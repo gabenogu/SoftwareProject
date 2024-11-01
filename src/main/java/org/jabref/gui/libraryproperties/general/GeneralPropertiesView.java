@@ -19,7 +19,7 @@ import jakarta.inject.Inject;
 public class GeneralPropertiesView extends AbstractPropertiesTabView<GeneralPropertiesViewModel> {
     @FXML private ComboBox<Charset> encoding;
     @FXML private ComboBox<BibDatabaseMode> databaseMode;
-    @FXML private TextField librarySpecificFileDirectory;
+    @FXML private TextField generalFileDirectory;
     @FXML private TextField userSpecificFileDirectory;
     @FXML private TextField laTexFileDirectory;
 
@@ -54,14 +54,14 @@ public class GeneralPropertiesView extends AbstractPropertiesTabView<GeneralProp
         databaseMode.itemsProperty().bind(viewModel.databaseModesProperty());
         databaseMode.valueProperty().bindBidirectional(viewModel.selectedDatabaseModeProperty());
 
-        librarySpecificFileDirectory.textProperty().bindBidirectional(viewModel.librarySpecificDirectoryPropertyProperty());
+        generalFileDirectory.textProperty().bindBidirectional(viewModel.generalFileDirectoryPropertyProperty());
         userSpecificFileDirectory.textProperty().bindBidirectional(viewModel.userSpecificFileDirectoryProperty());
         laTexFileDirectory.textProperty().bindBidirectional(viewModel.laTexFileDirectoryProperty());
     }
 
     @FXML
-    public void browseLibrarySpecificFileDirectory() {
-        viewModel.browseLibrarySpecificDir();
+    public void browseGeneralFileDirectory() {
+        viewModel.browseGeneralDir();
     }
 
     @FXML

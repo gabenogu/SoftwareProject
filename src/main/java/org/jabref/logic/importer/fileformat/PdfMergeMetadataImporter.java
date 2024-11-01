@@ -14,6 +14,7 @@ import org.jabref.logic.FilePreferences;
 import org.jabref.logic.importer.EntryBasedFetcher;
 import org.jabref.logic.importer.FetcherException;
 import org.jabref.logic.importer.ImportFormatPreferences;
+import org.jabref.logic.importer.Importer;
 import org.jabref.logic.importer.ParserResult;
 import org.jabref.logic.importer.fetcher.DoiFetcher;
 import org.jabref.logic.importer.fetcher.isbntobibtex.IsbnFetcher;
@@ -31,28 +32,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Tries to import BibTeX data trying multiple {@Link PdfImporter}s and merging the results.
+ * Tries to import BibTeX data trying multiple PDF content importers and merging the results.
  * See {@Link org.jabref.logic.importer.fileformat.PdfMergeMetadataImporter#metadataImporters} for the list of importers used.
  *
  * After all importers are applied, this importer tries to fetch additional metadata for the entry using the DOI and ISBN.
  */
-public class PdfMergeMetadataImporter extends PdfImporter {
+public class PdfMergeMetadataImporter extends Importer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfMergeMetadataImporter.class);
 
     private final ImportFormatPreferences importFormatPreferences;
-    private final List<PdfImporter> metadataImporters;
+    private final List<Importer> metadataImporters;
 
     public PdfMergeMetadataImporter(ImportFormatPreferences importFormatPreferences) {
         this.importFormatPreferences = importFormatPreferences;
 
         this.metadataImporters = new ArrayList<>(5);
-        this.metadataImporters.add(new PdfVerbatimBibtexImporter(importFormatPreferences));
+        this.metadataImporters.add(new PdfVerbatimBibTextImporter(importFormatPreferences));
         this.metadataImporters.add(new PdfEmbeddedBibFileImporter(importFormatPreferences));
-        this.metadataImporters.add(new PdfXmpImporter(importFormatPreferences.xmpPreferences()));
         if (importFormatPreferences.grobidPreferences().isGrobidEnabled()) {
             this.metadataImporters.add(new PdfGrobidImporter(importFormatPreferences));
         }
+        this.metadataImporters.add(new PdfXmpImporter(importFormatPreferences.xmpPreferences()));
         this.metadataImporters.add(new PdfContentImporter());
     }
 
@@ -79,7 +80,7 @@ public class PdfMergeMetadataImporter extends PdfImporter {
     public ParserResult importDatabase(Path filePath) throws IOException {
         List<BibEntry> candidates = new ArrayList<>();
 
-        for (PdfImporter metadataImporter : metadataImporters) {
+        for (Importer metadataImporter : metadataImporters) {
             List<BibEntry> extractedEntries = metadataImporter.importDatabase(filePath).getDatabase().getEntries();
             if (extractedEntries.isEmpty()) {
                 continue;
@@ -134,25 +135,6 @@ public class PdfMergeMetadataImporter extends PdfImporter {
         // The caller is responsible for making the path relative if necessary.
         entry.addFile(new LinkedFile("", filePath, StandardFileType.PDF.getName()));
         return new ParserResult(List.of(entry));
-    }
-
-    /**
-     * A modified version of {@link PdfMergeMetadataImporter#importDatabase(Path)}, but it
-     * relativizes the {@code filePath} if there are working directories before parsing it
-     * into {@link PdfMergeMetadataImporter#importDatabase(Path)}
-     * (Otherwise no path modification happens).
-     *
-     * @param filePath    The unrelativized {@code filePath}.
-     */
-    public ParserResult importDatabase(Path filePath, BibDatabaseContext context, FilePreferences filePreferences) throws IOException {
-        Objects.requireNonNull(context);
-        Objects.requireNonNull(filePreferences);
-
-        List<Path> directories = context.getFileDirectories(filePreferences);
-
-        filePath = FileUtil.relativize(filePath, directories);
-
-        return importDatabase(filePath);
     }
 
     @Override

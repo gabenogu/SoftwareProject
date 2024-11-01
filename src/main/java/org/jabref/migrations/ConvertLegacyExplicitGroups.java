@@ -36,7 +36,8 @@ public class ConvertLegacyExplicitGroups implements PostOpenMigration {
         Objects.requireNonNull(node);
         List<ExplicitGroup> findings = new ArrayList<>();
 
-        if (node.getGroup() instanceof ExplicitGroup group) {
+        if (node.getGroup() instanceof ExplicitGroup) {
+            ExplicitGroup group = (ExplicitGroup) node.getGroup();
             if (!group.getLegacyEntryKeys().isEmpty()) {
                 findings.add(group);
             }

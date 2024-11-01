@@ -82,6 +82,7 @@ public class SpecialFieldAction extends SimpleCommand {
             if (ce.hasEdits()) {
                 undoManager.addEdit(ce);
                 tabSupplier.get().markBaseChanged();
+                tabSupplier.get().updateEntryEditorIfShowing();
                 String outText;
                 if (nullFieldIfValueIsTheSame || value == null) {
                     outText = getTextDone(specialField, Integer.toString(bes.size()));

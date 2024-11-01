@@ -95,7 +95,7 @@ public class ISBN implements Identifier {
     }
 
     @Override
-    public String asString() {
+    public String getNormalized() {
         return isbnString;
     }
 

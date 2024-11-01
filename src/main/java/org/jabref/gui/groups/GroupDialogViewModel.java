@@ -32,7 +32,7 @@ import org.jabref.gui.util.FileDialogConfiguration;
 import org.jabref.logic.auxparser.DefaultAuxParser;
 import org.jabref.logic.groups.DefaultGroupsFactory;
 import org.jabref.logic.l10n.Localization;
-import org.jabref.logic.search.IndexManager;
+import org.jabref.logic.search.LuceneManager;
 import org.jabref.logic.util.StandardFileType;
 import org.jabref.logic.util.io.FileUtil;
 import org.jabref.model.database.BibDatabase;
@@ -52,7 +52,6 @@ import org.jabref.model.groups.TexGroup;
 import org.jabref.model.groups.WordKeywordGroup;
 import org.jabref.model.metadata.MetaData;
 import org.jabref.model.search.SearchFlags;
-import org.jabref.model.search.query.SearchQuery;
 import org.jabref.model.strings.StringUtil;
 import org.jabref.model.util.FileUpdateMonitor;
 
@@ -212,13 +211,10 @@ public class GroupDialogViewModel {
 
         searchSearchTermEmptyValidator = new FunctionBasedValidator<>(
                 searchGroupSearchTermProperty,
-                input -> {
-                    if (StringUtil.isNullOrEmpty(input)) {
-                        return false;
-                    }
-                    return new SearchQuery(input).isValid();
-                },
-                ValidationMessage.error(Localization.lang("Illegal search expression")));
+                input -> !StringUtil.isNullOrEmpty(input),
+                ValidationMessage.error("%s > %n %s".formatted(
+                        Localization.lang("Free search expression"),
+                        Localization.lang("Search term is empty."))));
 
         texGroupFilePathValidator = new FunctionBasedValidator<>(
                 texGroupFilePathProperty,
@@ -331,14 +327,14 @@ public class GroupDialogViewModel {
                     // Otherwise, it means that the user did not accept the migration to the new version.
                     Optional<GroupTreeNode> groups = currentDatabase.getMetaData().getGroups();
                     if (groups.filter(this::groupOrSubgroupIsSearchGroup).isEmpty()) {
-                        currentDatabase.getMetaData().setGroupSearchSyntaxVersion(SearchGroupsMigrationAction.VERSION_6_0_ALPHA_1);
+                        currentDatabase.getMetaData().setGroupSearchSyntaxVersion(SearchGroupsMigrationAction.VERSION_6_0_ALPHA);
                     }
                 }
 
-                Optional<IndexManager> indexManager = stateManager.getIndexManager(currentDatabase);
-                if (indexManager.isPresent()) {
+                Optional<LuceneManager> luceneManager = stateManager.getLuceneManager(currentDatabase);
+                if (luceneManager.isPresent()) {
                     SearchGroup searchGroup = (SearchGroup) resultingGroup;
-                    searchGroup.setMatchedEntries(indexManager.get().search(searchGroup.getSearchQuery()).getMatchedEntries());
+                    searchGroup.setMatchedEntries(luceneManager.get().search(searchGroup.getQuery()).getMatchedEntries());
                 }
             } else if (typeAutoProperty.getValue()) {
                 if (autoGroupKeywordsOptionProperty.getValue()) {
@@ -607,14 +603,6 @@ public class GroupDialogViewModel {
 
     public ObjectProperty<EnumSet<SearchFlags>> searchFlagsProperty() {
         return searchFlagsProperty;
-    }
-
-    public void setSearchFlag(SearchFlags searchFlag, boolean value) {
-        if (value) {
-            searchFlagsProperty.getValue().add(searchFlag);
-        } else {
-            searchFlagsProperty.getValue().remove(searchFlag);
-        }
     }
 
     public BooleanProperty autoGroupKeywordsOptionProperty() {

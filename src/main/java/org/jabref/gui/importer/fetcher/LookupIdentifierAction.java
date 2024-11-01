@@ -85,7 +85,7 @@ public class LookupIdentifierAction<T extends Identifier> extends SimpleCommand 
                 LOGGER.error("Could not fetch {}", fetcher.getIdentifierName(), e);
             }
             if (identifier.isPresent() && !bibEntry.hasField(identifier.get().getDefaultField())) {
-                Optional<FieldChange> fieldChange = bibEntry.setField(identifier.get().getDefaultField(), identifier.get().asString());
+                Optional<FieldChange> fieldChange = bibEntry.setField(identifier.get().getDefaultField(), identifier.get().getNormalized());
                 if (fieldChange.isPresent()) {
                     namedCompound.addEdit(new UndoableFieldChange(fieldChange.get()));
                     foundCount++;

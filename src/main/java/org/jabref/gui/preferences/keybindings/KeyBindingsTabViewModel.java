@@ -53,28 +53,17 @@ public class KeyBindingsTabViewModel implements PreferenceTabViewModel {
     @Override
     public void setValues() {
         KeyBindingViewModel root = new KeyBindingViewModel(keyBindingRepository, KeyBindingCategory.FILE);
-        rootKeyBinding.set(root);
-        filterValues("");
-    }
-
-    public void filterValues(String term) {
-        KeyBindingViewModel root = rootKeyBinding.get();
-        root.clear();
-        root.getChildren().clear();
         for (KeyBindingCategory category : KeyBindingCategory.values()) {
             KeyBindingViewModel categoryItem = new KeyBindingViewModel(keyBindingRepository, category);
             keyBindingRepository.getKeyBindings().forEach((keyBinding, bind) -> {
-                if (keyBinding.getCategory() == category &&
-                        (keyBinding.getLocalization().toLowerCase().contains(term.toLowerCase()) ||
-                                keyBinding.getCategory().getName().toLowerCase().contains(term.toLowerCase()))) {
+                if (keyBinding.getCategory() == category) {
                     KeyBindingViewModel keyBindViewModel = new KeyBindingViewModel(keyBindingRepository, keyBinding, bind);
                     categoryItem.getChildren().add(keyBindViewModel);
                 }
             });
-            if (!categoryItem.getChildren().isEmpty()) {
-                root.getChildren().add(categoryItem);
-            }
+            root.getChildren().add(categoryItem);
         }
+        rootKeyBinding.set(root);
     }
 
     public void setNewBindingForCurrent(KeyEvent event) {

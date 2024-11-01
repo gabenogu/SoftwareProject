@@ -2,7 +2,6 @@ package org.jabref.gui.push;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import org.jabref.gui.icon.IconTheme;
 import org.jabref.gui.icon.JabRefIcon;
 import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.logic.l10n.Localization;
-import org.jabref.logic.os.OS;
 import org.jabref.logic.util.HeadlessExecutorService;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
@@ -46,7 +44,14 @@ public class PushToVim extends AbstractPushToApplication {
 
     @Override
     public void pushEntries(BibDatabaseContext database, List<BibEntry> entries, String keys) {
-        if (!determineCommandPath()) {
+        couldNotPush = false;
+        couldNotCall = false;
+        notDefined = false;
+
+        commandPath = preferences.getPushToApplicationPreferences().getCommandPaths().get(this.getDisplayName());
+
+        if ((commandPath == null) || commandPath.trim().isEmpty()) {
+            notDefined = true;
             return;
         }
 
@@ -99,66 +104,5 @@ public class PushToVim extends AbstractPushToApplication {
         } else {
             super.onOperationCompleted();
         }
-    }
-
-    @Override
-    public void jumpToLine(Path fileName, int line, int column) {
-        if (!determineCommandPath()) {
-            return;
-        }
-
-        ProcessBuilder processBuilder = new ProcessBuilder();
-        try {
-            String[] command = jumpToLineCommandlineArguments(fileName, line, column);
-            if (OS.WINDOWS) {
-                 processBuilder.command("cmd",
-                         "/c",
-                         "start",
-                         "",
-                        "\"%s\"".formatted(command[0]),
-                         "\"%s\"".formatted(command[1]),
-                        "\"%s\"".formatted(command[2]),
-                        "\"+normal %s|\"".formatted(Integer.toString(column)));
-            } else if (OS.LINUX) {
-                processBuilder.command("gnome-terminal",
-                        "--",
-                        command[0],
-                        command[1],
-                        command[2],
-                        command[3]);
-            } else if (OS.OS_X) {
-                processBuilder.command("open",
-                        "-a",
-                        "Terminal",
-                        "--args",
-                        command[0],
-                        command[1],
-                        command[2],
-                        command[3]);
-            }
-            processBuilder.start();
-        } catch (IOException e) {
-            LOGGER.warn("Problem pushing to Vim.", e);
-            couldNotCall = true;
-        }
-    }
-
-    private boolean determineCommandPath() {
-        couldNotPush = false;
-        couldNotCall = false;
-        notDefined = false;
-
-        commandPath = preferences.getPushToApplicationPreferences().getCommandPaths().get(this.getDisplayName());
-
-        if ((commandPath == null) || commandPath.trim().isEmpty()) {
-            notDefined = true;
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    protected String[] jumpToLineCommandlineArguments(Path fileName, int line, int column) {
-        return new String[] {commandPath, "+%s".formatted(line), fileName.toString(), "+\"normal %s|\"".formatted(column)};
     }
 }

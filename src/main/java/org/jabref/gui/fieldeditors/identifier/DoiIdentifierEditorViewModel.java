@@ -48,7 +48,7 @@ public class DoiIdentifierEditorViewModel extends BaseIdentifierEditorViewModel<
             .onFinished(() -> identifierLookupInProgress.setValue(false))
             .onSuccess(identifier -> {
                 if (identifier.isPresent()) {
-                    entry.setField(field, identifier.get().asString());
+                    entry.setField(field, identifier.get().getNormalized());
                 } else {
                     dialogService.notify(Localization.lang("No %0 found", field.getDisplayName()));
                 }
@@ -66,7 +66,7 @@ public class DoiIdentifierEditorViewModel extends BaseIdentifierEditorViewModel<
 
     @Override
     public void openExternalLink() {
-        identifier.get().map(DOI::asString)
+        identifier.get().map(DOI::getDOI)
                   .ifPresent(s -> NativeDesktop.openCustomDoi(s, preferences, dialogService));
     }
 }

@@ -524,6 +524,7 @@ public class JabRefFrame extends BorderPane implements LibraryTabContainer, UiMe
      * Refreshes the ui after preferences changes
      */
     public void refresh() {
+        globalSearchBar.updateHintVisibility();
         getLibraryTabs().forEach(LibraryTab::setupMainPanel);
         getLibraryTabs().forEach(tab -> tab.getMainTable().getTableModel().resetFieldFormatter());
     }

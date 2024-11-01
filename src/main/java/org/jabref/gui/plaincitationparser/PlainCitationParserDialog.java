@@ -9,7 +9,6 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
-import javafx.stage.Stage;
 
 import org.jabref.gui.ClipBoardManager;
 import org.jabref.gui.DialogService;
@@ -54,10 +53,6 @@ public class PlainCitationParserDialog extends BaseDialog<Void> {
                   .setAsDialogPane(this);
 
         this.setTitle(Localization.lang("Plain Citations Parser"));
-
-        Stage stage = (Stage) getDialogPane().getScene().getWindow();
-        stage.setMinHeight(550);
-        stage.setMinWidth(500);
     }
 
     @FXML

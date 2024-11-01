@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.jabref.logic.importer.ImportFormatPreferences;
+import org.jabref.logic.importer.Importer;
 import org.jabref.logic.importer.ParseException;
 import org.jabref.logic.importer.ParserResult;
 import org.jabref.logic.l10n.Localization;
@@ -31,7 +32,7 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachme
 /**
  * PdfEmbeddedBibFileImporter imports an embedded Bib-File from the PDF.
  */
-public class PdfEmbeddedBibFileImporter extends PdfImporter {
+public class PdfEmbeddedBibFileImporter extends Importer {
 
     private final BibtexParser bibtexParser;
 

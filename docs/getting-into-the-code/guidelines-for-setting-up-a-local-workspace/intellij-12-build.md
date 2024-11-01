@@ -50,7 +50,7 @@ If that does not exist, just select JDK 21.
 ![Gradle JVM is project SDK](guidelines-intellij-settings-gradle-gradlejvm-is-projectjvm.png)
 {% endfigure %}
 
-## Enable compilation by IntelliJ
+## Enable compiliation by IntelliJ
 
 To prepare IntelliJ's build system additional steps are required:
 
@@ -128,7 +128,7 @@ After that a new entry called "jabref \[run]" appears in the run configurations.
 Now you can also select "jabref \[run]" and either run or debug the application from within IntelliJ.
 
 {: .note }
-You can run any other development task similarly.
+You can run any other development task in a similar way.
 
 ## Using IntelliJ's internal build system for tests
 

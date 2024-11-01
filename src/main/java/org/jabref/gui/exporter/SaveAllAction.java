@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 
 import org.jabref.gui.DialogService;
 import org.jabref.gui.LibraryTab;
-import org.jabref.gui.StateManager;
 import org.jabref.gui.actions.SimpleCommand;
 import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.logic.l10n.Localization;
@@ -13,19 +12,16 @@ import org.jabref.model.entry.BibEntryTypesManager;
 
 import com.airhacks.afterburner.injection.Injector;
 
-import static org.jabref.gui.actions.ActionHelper.needsDatabase;
-
 public class SaveAllAction extends SimpleCommand {
 
     private final Supplier<List<LibraryTab>> tabsSupplier;
     private final DialogService dialogService;
     private final GuiPreferences preferences;
 
-    public SaveAllAction(Supplier<List<LibraryTab>> tabsSupplier, GuiPreferences preferences, DialogService dialogService, StateManager stateManager) {
+    public SaveAllAction(Supplier<List<LibraryTab>> tabsSupplier, GuiPreferences preferences, DialogService dialogService) {
         this.tabsSupplier = tabsSupplier;
         this.dialogService = dialogService;
         this.preferences = preferences;
-        this.executable.bind(needsDatabase(stateManager));
     }
 
     @Override

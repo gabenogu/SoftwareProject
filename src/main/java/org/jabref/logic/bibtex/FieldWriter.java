@@ -85,10 +85,10 @@ public class FieldWriter {
         }
 
         if (!shouldResolveStrings(field) || field.equals(InternalField.BIBTEX_STRING)) {
-            return formatWithoutResolvingStrings(content);
+            return formatWithoutResolvingStrings(content, field);
         }
 
-        return formatAndResolveStrings(content);
+        return formatAndResolveStrings(content, field);
     }
 
     /**
@@ -96,7 +96,7 @@ public class FieldWriter {
      * <p>
      * For instance, <code>#jan# - #feb#</code> gets  <code>jan #{ - } # feb</code> (see @link{org.jabref.logic.bibtex.LatexFieldFormatterTests#makeHashEnclosedWordsRealStringsInMonthField()})
      */
-    private String formatAndResolveStrings(String content) throws InvalidFieldValueException {
+    private String formatAndResolveStrings(String content, Field field) throws InvalidFieldValueException {
         checkBraces(content);
 
         content = content.replace("##", "");
@@ -123,7 +123,7 @@ public class FieldWriter {
                 if (neverFailOnHashes) {
                     pos1 = content.length(); // just write out the rest of the text, and throw no exception
                 } else {
-                    LOGGER.error("The character {} is not allowed in BibTeX strings unless escaped as in '\\\\{}'. "
+                    LOGGER.error("The character {} is not allowed in BibTeX strings unless escaped as in '\\{}'. "
                                     + "In JabRef, use pairs of # characters to indicate a string. "
                                     + "Note that the entry causing the problem has been selected. Field value: {}",
                             BIBTEX_STRING_START_END_SYMBOL,
@@ -183,9 +183,12 @@ public class FieldWriter {
         return false;
     }
 
-    private String formatWithoutResolvingStrings(String content) throws InvalidFieldValueException {
+    private String formatWithoutResolvingStrings(String content, Field field) throws InvalidFieldValueException {
         checkBraces(content);
-        return FIELD_START + content + FIELD_END;
+        StringBuilder stringBuilder = new StringBuilder(String.valueOf(FIELD_START));
+        stringBuilder.append(content);
+        stringBuilder.append(FIELD_END);
+        return stringBuilder.toString();
     }
 
     /**

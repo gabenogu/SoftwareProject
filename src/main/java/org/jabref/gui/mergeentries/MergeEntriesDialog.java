@@ -23,14 +23,6 @@ public class MergeEntriesDialog extends BaseDialog<EntriesMergeResult> {
         init();
     }
 
-    public MergeEntriesDialog(BibEntry one, BibEntry two, String leftHeader, String rightHeader, GuiPreferences preferences) {
-        threeWayMergeView = new ThreeWayMergeView(one, two, leftHeader, rightHeader, preferences);
-        this.one = one;
-        this.two = two;
-
-        init();
-    }
-
     /**
      * Sets up the dialog
      */

@@ -56,7 +56,7 @@ public class WebSearchTabViewModel implements PreferenceTabViewModel {
     private final BooleanProperty grobidEnabledProperty = new SimpleBooleanProperty();
     private final StringProperty grobidURLProperty = new SimpleStringProperty("");
 
-    private final ObservableList<FetcherApiKey> apiKeys = FXCollections.observableArrayList();
+    private final ListProperty<FetcherApiKey> apiKeys = new SimpleListProperty<>();
     private final ObjectProperty<FetcherApiKey> selectedApiKeyProperty = new SimpleObjectProperty<>();
     private final BooleanProperty apikeyPersistProperty = new SimpleBooleanProperty();
     private final BooleanProperty apikeyPersistAvailableProperty = new SimpleBooleanProperty();
@@ -138,10 +138,7 @@ public class WebSearchTabViewModel implements PreferenceTabViewModel {
         grobidEnabledProperty.setValue(grobidPreferences.isGrobidEnabled());
         grobidURLProperty.setValue(grobidPreferences.getGrobidURL());
 
-        apiKeys.setAll(preferences.getImporterPreferences().getApiKeys().stream()
-                                  .map(apiKey -> new FetcherApiKey(apiKey.getName(), apiKey.shouldUse(), apiKey.getKey()))
-                                  .toList());
-
+        apiKeys.setValue(FXCollections.observableArrayList(preferences.getImporterPreferences().getApiKeys()));
         apikeyPersistAvailableProperty.setValue(OS.isKeyringAvailable());
         apikeyPersistProperty.setValue(preferences.getImporterPreferences().shouldPersistCustomKeys());
         catalogs.addAll(WebFetchers.getSearchBasedFetchers(importFormatPreferences, importerPreferences)
@@ -164,7 +161,7 @@ public class WebSearchTabViewModel implements PreferenceTabViewModel {
         filePreferences.setKeepDownloadUrl(shouldkeepDownloadUrl.getValue());
         importerPreferences.setDefaultPlainCitationParser(defaultPlainCitationParser.getValue());
         grobidPreferences.setGrobidEnabled(grobidEnabledProperty.getValue());
-        grobidPreferences.setGrobidUseAsked(grobidPreferences.isGrobidUseAsked());
+        grobidPreferences.setGrobidOptOut(grobidPreferences.isGrobidOptOut());
         grobidPreferences.setGrobidURL(grobidURLProperty.getValue());
         doiPreferences.setUseCustom(useCustomDOIProperty.get());
         doiPreferences.setDefaultBaseURI(useCustomDOINameProperty.getValue().trim());
@@ -216,7 +213,7 @@ public class WebSearchTabViewModel implements PreferenceTabViewModel {
         return grobidURLProperty;
     }
 
-    public ObservableList<FetcherApiKey> fetcherApiKeys() {
+    public ListProperty<FetcherApiKey> fetcherApiKeys() {
         return apiKeys;
     }
 

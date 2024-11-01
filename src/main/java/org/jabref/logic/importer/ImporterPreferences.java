@@ -2,7 +2,6 @@ package org.jabref.logic.importer;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -24,7 +23,6 @@ public class ImporterPreferences {
     private final BooleanProperty warnAboutDuplicatesOnImport;
     private final ObjectProperty<Path> importWorkingDirectory;
     private final ObservableSet<FetcherApiKey> apiKeys;
-    private final Map<String, String> defaultApiKeys;
     private final ObservableSet<CustomImporter> customImporters;
     private final BooleanProperty persistCustomKeys;
     private final ObservableList<String> catalogs;
@@ -36,7 +34,6 @@ public class ImporterPreferences {
                                boolean warnAboutDuplicatesOnImport,
                                Set<CustomImporter> customImporters,
                                Set<FetcherApiKey> apiKeys,
-                               Map<String, String> defaultApiKeys,
                                boolean persistCustomKeys,
                                List<String> catalogs,
                                PlainCitationParserChoice defaultPlainCitationParser
@@ -47,7 +44,6 @@ public class ImporterPreferences {
         this.warnAboutDuplicatesOnImport = new SimpleBooleanProperty(warnAboutDuplicatesOnImport);
         this.customImporters = FXCollections.observableSet(customImporters);
         this.apiKeys = FXCollections.observableSet(apiKeys);
-        this.defaultApiKeys = defaultApiKeys;
         this.persistCustomKeys = new SimpleBooleanProperty(persistCustomKeys);
         this.catalogs = FXCollections.observableArrayList(catalogs);
         this.defaultPlainCitationParser = new SimpleObjectProperty<>(defaultPlainCitationParser);
@@ -126,17 +122,12 @@ public class ImporterPreferences {
         this.persistCustomKeys.set(persistCustomKeys);
     }
 
-    /**
-     * @param name of the fetcher
-     * @return either a customized API key if configured or the default key
-     */
     public Optional<String> getApiKey(String name) {
         return apiKeys.stream()
                       .filter(key -> key.getName().equalsIgnoreCase(name))
                       .filter(FetcherApiKey::shouldUse)
                       .findFirst()
-                      .map(FetcherApiKey::getKey)
-                      .or(() -> Optional.ofNullable(defaultApiKeys.get(name)));
+                      .map(FetcherApiKey::getKey);
     }
 
     public void setCatalogs(List<String> catalogs) {

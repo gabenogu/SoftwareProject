@@ -6,15 +6,14 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.Set;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,23 +46,34 @@ class CitationKeyBasedFileFinder implements FileFinder {
         }
         String citeKey = citeKeyOptional.get();
 
-        Function<Path, Boolean> filteringFunction;
+        List<Path> result = new ArrayList<>();
 
-        if (exactKeyOnly) {
-            // LOGGER.debug("Found exact match for key {} in file {}", citeKey, file);
-            filteringFunction = (Path p) -> FileUtil.getBaseName(p.getFileName().toString()).equals(citeKey);
-        } else {
-            // LOGGER.debug("Found non-exact match for key {} in file {}", citeKey, file);
-            filteringFunction = (Path p) -> matches(p.getFileName().toString(), citeKey);
+        // First scan directories
+        Set<Path> filesWithExtension = findFilesByExtension(directories, extensions);
+
+        // Now look for keys
+        for (Path file : filesWithExtension) {
+            String name = file.getFileName().toString();
+            String nameWithoutExtension = FileUtil.getBaseName(name);
+
+            // First, look for exact matches
+            if (nameWithoutExtension.equals(citeKey)) {
+                LOGGER.debug("Found exact match for key {} in file {}", citeKey, file);
+                result.add(file);
+                continue;
+            }
+            // If we get here, we did not find any exact matches. If non-exact matches are allowed, try to find one
+            if (!exactKeyOnly && matches(name, citeKey)) {
+                LOGGER.debug("Found non-exact match for key {} in file {}", citeKey, file);
+                result.add(file);
+            }
         }
 
-        SortedSet<Path> result = findFilesByExtension(directories, extensions, filteringFunction);
-
-        return result.stream().toList();
+        return result.stream().sorted().toList();
     }
 
     private boolean matches(String filename, String citeKey) {
-        boolean startsWithKey = filename.startsWith(citeKey) || filename.startsWith(FileNameCleaner.cleanFileName(citeKey));
+        boolean startsWithKey = filename.startsWith(FileNameCleaner.cleanFileName(citeKey));
         if (startsWithKey) {
             // The file name starts with the key, that's already a good start
             // However, we do not want to match "JabRefa" for "JabRef" since this is probably a file belonging to another entry published in the same time / same name
@@ -76,13 +86,13 @@ class CitationKeyBasedFileFinder implements FileFinder {
     /**
      * Returns a list of all files in the given directories which have one of the given extension.
      */
-    private SortedSet<Path> findFilesByExtension(List<Path> directories, Collection<String> extensions, Function<Path, Boolean> filteringFunction) throws IOException {
+    private Set<Path> findFilesByExtension(List<Path> directories, List<String> extensions) throws IOException {
         Objects.requireNonNull(extensions, "Extensions must not be null!");
 
         BiPredicate<Path, BasicFileAttributes> isFileWithCorrectExtension = (path, attributes) -> !Files.isDirectory(path)
-                && extensions.contains(FileUtil.getFileExtension(path).orElse("")) && filteringFunction.apply(path);
+                && extensions.contains(FileUtil.getFileExtension(path).orElse(""));
 
-        SortedSet<Path> result = new TreeSet<>();
+        Set<Path> result = new HashSet<>();
         for (Path directory : directories) {
             if (Files.exists(directory)) {
                 try (Stream<Path> pathStream = Files.find(directory, Integer.MAX_VALUE, isFileWithCorrectExtension, FileVisitOption.FOLLOW_LINKS)) {

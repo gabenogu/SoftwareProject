@@ -66,7 +66,7 @@ public class MathSciNetId implements Identifier {
     }
 
     @Override
-    public String asString() {
+    public String getNormalized() {
         return identifier;
     }
 }

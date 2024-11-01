@@ -12,6 +12,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 
+import org.jabref.gui.StateManager;
 import org.jabref.gui.groups.GroupViewMode;
 import org.jabref.gui.groups.GroupsPreferences;
 import org.jabref.gui.preferences.GuiPreferences;
@@ -19,32 +20,28 @@ import org.jabref.gui.search.MatchCategory;
 import org.jabref.gui.util.BindingsHelper;
 import org.jabref.gui.util.FilteredListProxy;
 import org.jabref.gui.util.OptionalObjectProperty;
-import org.jabref.logic.search.IndexManager;
+import org.jabref.logic.search.LuceneManager;
+import org.jabref.logic.search.SearchDisplayMode;
 import org.jabref.logic.search.SearchPreferences;
 import org.jabref.logic.util.BackgroundTask;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.groups.GroupTreeNode;
-import org.jabref.model.search.SearchDisplayMode;
+import org.jabref.model.search.SearchFieldConstants;
+import org.jabref.model.search.SearchQuery;
+import org.jabref.model.search.SearchResults;
 import org.jabref.model.search.event.IndexAddedOrUpdatedEvent;
 import org.jabref.model.search.event.IndexStartedEvent;
 import org.jabref.model.search.matchers.MatcherSet;
 import org.jabref.model.search.matchers.MatcherSets;
-import org.jabref.model.search.query.SearchQuery;
-import org.jabref.model.search.query.SearchResults;
 
 import com.google.common.eventbus.Subscribe;
 import com.tobiasdiez.easybind.EasyBind;
 import com.tobiasdiez.easybind.Subscription;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.jabref.model.search.PostgreConstants.ENTRY_ID;
 
 public class MainTableDataModel {
-    private final Logger LOGGER = LoggerFactory.getLogger(MainTableDataModel.class);
 
     private final ObservableList<BibEntryTableViewModel> entriesViewModel;
     private final FilteredList<BibEntryTableViewModel> entriesFiltered;
@@ -54,21 +51,23 @@ public class MainTableDataModel {
     private final SearchPreferences searchPreferences;
     private final NameDisplayPreferences nameDisplayPreferences;
     private final BibDatabaseContext bibDatabaseContext;
+    private final StateManager stateManager;
     private final TaskExecutor taskExecutor;
     private final Subscription searchQuerySubscription;
     private final Subscription searchDisplayModeSubscription;
     private final Subscription selectedGroupsSubscription;
     private final Subscription groupViewModeSubscription;
-    private final SearchIndexListener indexUpdatedListener;
+    private final LuceneIndexListener indexUpdatedListener;
     private final OptionalObjectProperty<SearchQuery> searchQueryProperty;
-    @Nullable private final IndexManager indexManager;
+    @Nullable private final LuceneManager luceneManager;
 
     private Optional<MatcherSet> groupsMatcher;
 
     public MainTableDataModel(BibDatabaseContext context,
                               GuiPreferences preferences,
                               TaskExecutor taskExecutor,
-                              @Nullable IndexManager indexManager,
+                              StateManager stateManager,
+                              @Nullable LuceneManager luceneManager,
                               ListProperty<GroupTreeNode> selectedGroupsProperty,
                               OptionalObjectProperty<SearchQuery> searchQueryProperty,
                               IntegerProperty resultSizeProperty) {
@@ -76,10 +75,11 @@ public class MainTableDataModel {
         this.searchPreferences = preferences.getSearchPreferences();
         this.nameDisplayPreferences = preferences.getNameDisplayPreferences();
         this.taskExecutor = taskExecutor;
-        this.indexManager = indexManager;
+        this.stateManager = stateManager;
+        this.luceneManager = luceneManager;
         this.bibDatabaseContext = context;
         this.searchQueryProperty = searchQueryProperty;
-        this.indexUpdatedListener = new SearchIndexListener();
+        this.indexUpdatedListener = new LuceneIndexListener();
         this.groupsMatcher = createGroupMatcher(selectedGroupsProperty.get(), groupsPreferences);
 
         this.bibDatabaseContext.getDatabase().registerListener(indexUpdatedListener);
@@ -102,7 +102,8 @@ public class MainTableDataModel {
     private void updateSearchMatches(Optional<SearchQuery> query) {
         BackgroundTask.wrap(() -> {
             if (query.isPresent()) {
-                setSearchMatches(indexManager.search(query.get()));
+                SearchResults results = luceneManager.search(query.get());
+                setSearchMatches(results);
             } else {
                 clearSearchMatches();
             }
@@ -112,15 +113,16 @@ public class MainTableDataModel {
     private void setSearchMatches(SearchResults results) {
         boolean isFloatingMode = searchPreferences.getSearchDisplayMode() == SearchDisplayMode.FLOAT;
         entriesViewModel.forEach(entry -> {
+            entry.searchScoreProperty().set(results.getSearchScoreForEntry(entry.getEntry()));
             entry.hasFullTextResultsProperty().set(results.hasFulltextResults(entry.getEntry()));
-            updateEntrySearchMatch(entry, results.isMatched(entry.getEntry()), isFloatingMode);
+            updateEntrySearchMatch(entry, entry.searchScoreProperty().get() > 0, isFloatingMode);
         });
     }
 
     private void clearSearchMatches() {
         boolean isFloatingMode = searchPreferences.getSearchDisplayMode() == SearchDisplayMode.FLOAT;
         entriesViewModel.forEach(entry -> {
-            entry.isMatchedBySearch().set(true);
+            entry.searchScoreProperty().set(0);
             entry.hasFullTextResultsProperty().set(false);
             updateEntrySearchMatch(entry, true, isFloatingMode);
         });
@@ -198,19 +200,11 @@ public class MainTableDataModel {
         return entriesFilteredAndSorted;
     }
 
-    public Optional<BibEntryTableViewModel> getViewModelByIndex(int index) {
-        if (index < 0 || index >= entriesViewModel.size()) {
-            LOGGER.warn("Tried to access out of bounds index {} in entriesViewModel", index);
-            return Optional.empty();
-        }
-        return Optional.of(entriesViewModel.get(index));
-    }
-
     public void resetFieldFormatter() {
         this.fieldValueFormatter.setValue(new MainTableFieldValueFormatter(nameDisplayPreferences, bibDatabaseContext));
     }
 
-    class SearchIndexListener {
+    class LuceneIndexListener {
         @Subscribe
         public void listen(IndexAddedOrUpdatedEvent indexAddedOrUpdatedEvent) {
             indexAddedOrUpdatedEvent.entries().forEach(entry -> {
@@ -219,17 +213,18 @@ public class MainTableDataModel {
                     if (index >= 0) {
                         BibEntryTableViewModel viewModel = entriesViewModel.get(index);
                         boolean isFloatingMode = searchPreferences.getSearchDisplayMode() == SearchDisplayMode.FLOAT;
-                        boolean isMatched;
+                        boolean isMatched = true;
                         if (searchQueryProperty.get().isPresent()) {
                             SearchQuery searchQuery = searchQueryProperty.get().get();
-                            String newSearchExpression = "(" + ENTRY_ID + "= " + entry.getId() + ") AND (" + searchQuery.getSearchExpression() + ")";
+                            String newSearchExpression = "+" + SearchFieldConstants.ENTRY_ID + ":" + entry.getId() + " +" + searchQuery.getSearchExpression();
                             SearchQuery entryQuery = new SearchQuery(newSearchExpression, searchQuery.getSearchFlags());
-                            SearchResults results = indexManager.search(entryQuery);
+                            SearchResults results = luceneManager.search(entryQuery);
 
-                            isMatched = results.isMatched(entry);
+                            viewModel.searchScoreProperty().set(results.getSearchScoreForEntry(entry));
                             viewModel.hasFullTextResultsProperty().set(results.hasFulltextResults(entry));
+                            isMatched = viewModel.searchScoreProperty().get() > 0;
                         } else {
-                            isMatched = true;
+                            viewModel.searchScoreProperty().set(0);
                             viewModel.hasFullTextResultsProperty().set(false);
                         }
 

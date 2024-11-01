@@ -34,14 +34,12 @@ import org.jabref.logic.shared.DatabaseNotSupportedException;
 import org.jabref.logic.shared.exception.InvalidDBMSConnectionPropertiesException;
 import org.jabref.logic.shared.exception.NotASharedDatabaseException;
 import org.jabref.logic.util.BackgroundTask;
-import org.jabref.logic.util.Directories;
 import org.jabref.logic.util.StandardFileType;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.logic.util.io.FileHistory;
 import org.jabref.model.entry.BibEntryTypesManager;
 import org.jabref.model.util.FileUpdateMonitor;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +56,7 @@ public class OpenDatabaseAction extends SimpleCommand {
             new MergeReviewIntoCommentAction(),
             // Check for new custom entry types loaded from the BIB file:
             new CheckForNewEntryTypesAction(),
-            // Migrate search groups fielded terms to use the new operators (RegEx, case sensitive)
+            // Migrate search groups from Search.g4 to Lucene syntax
             new SearchGroupsMigrationAction());
 
     private final LibraryTabContainer tabContainer;
@@ -96,7 +94,7 @@ public class OpenDatabaseAction extends SimpleCommand {
 
     public static void performPostOpenActions(ParserResult result, DialogService dialogService, CliPreferences preferences) {
         for (GUIPostOpenAction action : OpenDatabaseAction.POST_OPEN_ACTIONS) {
-            if (action.isActionNecessary(result, dialogService, preferences)) {
+            if (action.isActionNecessary(result, preferences)) {
                 action.performAction(result, dialogService, preferences);
             }
         }
@@ -104,47 +102,20 @@ public class OpenDatabaseAction extends SimpleCommand {
 
     @Override
     public void execute() {
-        List<Path> filesToOpen = getFilesToOpen();
-        openFiles(new ArrayList<>(filesToOpen));
-    }
-
-    @VisibleForTesting
-    List<Path> getFilesToOpen() {
-        List<Path> filesToOpen;
-
-        try {
-            FileDialogConfiguration initialDirectoryConfig = getFileDialogConfiguration(getInitialDirectory());
-            filesToOpen = dialogService.showFileOpenDialogAndGetMultipleFiles(initialDirectoryConfig);
-        } catch (IllegalArgumentException e) {
-            // See https://github.com/JabRef/jabref/issues/10548 for details
-            // Rebuild a new config with the home directory
-            FileDialogConfiguration homeDirectoryConfig = getFileDialogConfiguration(Directories.getUserDirectory());
-            filesToOpen = dialogService.showFileOpenDialogAndGetMultipleFiles(homeDirectoryConfig);
-        }
-
-        return filesToOpen;
-    }
-
-    /**
-     * Builds a new FileDialogConfiguration using the given path as the initial directory for use in
-     * dialogService.showFileOpenDialogAndGetMultipleFiles().
-     *
-     * @param initialDirectory Path to use as the initial directory
-     * @return new FileDialogConfig with given initial directory
-     */
-    public FileDialogConfiguration getFileDialogConfiguration(Path initialDirectory) {
-        return new FileDialogConfiguration.Builder()
+        FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .addExtensionFilter(StandardFileType.BIBTEX_DB)
                 .withDefaultExtension(StandardFileType.BIBTEX_DB)
-                .withInitialDirectory(initialDirectory)
+                .withInitialDirectory(getInitialDirectory())
                 .build();
+
+        List<Path> filesToOpen = dialogService.showFileOpenDialogAndGetMultipleFiles(fileDialogConfiguration);
+        openFiles(new ArrayList<>(filesToOpen));
     }
 
     /**
      * @return Path of current panel database directory or the working directory
      */
-    @VisibleForTesting
-    Path getInitialDirectory() {
+    private Path getInitialDirectory() {
         if (tabContainer.getLibraryTabs().isEmpty()) {
             return preferences.getFilePreferences().getWorkingDirectory();
         } else {

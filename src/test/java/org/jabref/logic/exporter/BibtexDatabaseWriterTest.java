@@ -810,7 +810,7 @@ class BibtexDatabaseWriterTest {
 
     @Test
     void writeFileDirectories() throws Exception {
-        metaData.setLibrarySpecificFileDirectory("\\Literature\\");
+        metaData.setDefaultFileDirectory("\\Literature\\");
         metaData.setUserFileDirectory("defaultOwner-user", "D:\\Documents");
         metaData.setLatexFileDirectory("defaultOwner-user", Path.of("D:\\Latex"));
 

@@ -241,7 +241,7 @@ public class Author {
      * @return 'von Last'
      */
     public String getNamePrefixAndFamilyName() {
-        if (namePrefix == null || namePrefix.isEmpty()) {
+        if (namePrefix == null || "".equals(namePrefix)) {
             return getFamilyName().orElse("");
         } else {
             return familyName == null ? namePrefix : namePrefix + ' ' + familyName;
@@ -285,12 +285,14 @@ public class Author {
 
     @Override
     public String toString() {
-        return "Author{" + "givenName='" + givenName + '\'' +
-                ", givenNameAbbreviated='" + givenNameAbbreviated + '\'' +
-                ", namePrefix='" + namePrefix + '\'' +
-                ", familyName='" + familyName + '\'' +
-                ", nameSuffix='" + nameSuffix + '\'' +
-                '}';
+        final StringBuilder sb = new StringBuilder("Author{");
+        sb.append("givenName='").append(givenName).append('\'');
+        sb.append(", givenNameAbbreviated='").append(givenNameAbbreviated).append('\'');
+        sb.append(", namePrefix='").append(namePrefix).append('\'');
+        sb.append(", familyName='").append(familyName).append('\'');
+        sb.append(", nameSuffix='").append(nameSuffix).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 
     /**
@@ -303,7 +305,7 @@ public class Author {
         getFamilyName().ifPresent(res::append);
         getNameSuffix().ifPresent(jr -> res.append(", ").append(jr));
         getGivenNameAbbreviated().ifPresent(firstA -> res.append(", ").append(firstA));
-        while ((!res.isEmpty()) && (res.charAt(0) == '{')) {
+        while ((res.length() > 0) && (res.charAt(0) == '{')) {
             res.deleteCharAt(0);
         }
         return res.toString();

@@ -209,10 +209,11 @@ public class BracketedPattern {
      */
     public static Function<String, String> expandBracketContent(Character keywordDelimiter, BibEntry entry, BibDatabase database) {
         return (String bracket) -> {
+            String expandedPattern;
             List<String> fieldParts = parseFieldAndModifiers(bracket);
             // check whether there is a modifier on the end such as
             // ":lower":
-            String expandedPattern = getFieldValue(entry, fieldParts.getFirst(), keywordDelimiter, database);
+            expandedPattern = getFieldValue(entry, fieldParts.getFirst(), keywordDelimiter, database);
             if (fieldParts.size() > 1) {
                 // apply modifiers:
                 expandedPattern = applyModifiers(expandedPattern, fieldParts, 1, expandBracketContent(keywordDelimiter, entry, database));
@@ -232,7 +233,6 @@ public class BracketedPattern {
     public static String expandBrackets(String pattern, Function<String, String> bracketContentHandler) {
         Objects.requireNonNull(pattern);
         StringBuilder expandedPattern = new StringBuilder();
-        pattern = pattern.replace("\\\"", "\u0A17");
         StringTokenizer parsedPattern = new StringTokenizer(pattern, "\\[]\"", true);
 
         while (parsedPattern.hasMoreTokens()) {
@@ -254,7 +254,7 @@ public class BracketedPattern {
             }
         }
 
-        return expandedPattern.toString().replace("\u0A17", "\\\"");
+        return expandedPattern.toString();
     }
 
     /**
@@ -1140,19 +1140,11 @@ public class BracketedPattern {
             } else if (currentChar == '\\') {
                 if (escaped) {
                     escaped = false;
-                    // Only : needs to be escaped
-                    // " -> regex("...", "...") - escaping should be passed through to the regex parser
-                    // : -> :abc:def
-                    current.append('\\');
-                    current.append('\\');
+                    current.append(currentChar);
                 } else {
                     escaped = true;
                 }
             } else if (escaped) {
-                if (currentChar != ':') {
-                    // Only : needs to be escaped
-                    current.append('\\');
-                }
                 current.append(currentChar);
                 escaped = false;
             } else {

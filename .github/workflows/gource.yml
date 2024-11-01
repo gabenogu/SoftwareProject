@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   action:
-    if: github.repository_owner == 'JabRef'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout'

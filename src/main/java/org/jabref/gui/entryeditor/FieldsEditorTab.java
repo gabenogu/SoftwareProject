@@ -36,11 +36,12 @@ import org.jabref.gui.undo.RedoAction;
 import org.jabref.gui.undo.UndoAction;
 import org.jabref.gui.util.OptionalObjectProperty;
 import org.jabref.logic.journals.JournalAbbreviationRepository;
+import org.jabref.logic.search.LuceneManager;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.field.Field;
-import org.jabref.model.search.query.SearchQuery;
+import org.jabref.model.search.SearchQuery;
 
 import com.tobiasdiez.easybind.EasyBind;
 import com.tobiasdiez.easybind.Subscription;
@@ -63,6 +64,7 @@ abstract class FieldsEditorTab extends EntryEditorTab implements OffersPreview {
     private final JournalAbbreviationRepository journalAbbreviationRepository;
     private PreviewPanel previewPanel;
     private final UndoManager undoManager;
+    private final LuceneManager luceneManager;
     private final OptionalObjectProperty<SearchQuery> searchQueryProperty;
     private Collection<Field> fields = new ArrayList<>();
     @SuppressWarnings("FieldCanBeLocal")
@@ -79,6 +81,7 @@ abstract class FieldsEditorTab extends EntryEditorTab implements OffersPreview {
                            ThemeManager themeManager,
                            TaskExecutor taskExecutor,
                            JournalAbbreviationRepository journalAbbreviationRepository,
+                           LuceneManager luceneManager,
                            OptionalObjectProperty<SearchQuery> searchQueryProperty) {
         this.isCompressed = compressed;
         this.databaseContext = Objects.requireNonNull(databaseContext);
@@ -91,6 +94,7 @@ abstract class FieldsEditorTab extends EntryEditorTab implements OffersPreview {
         this.themeManager = themeManager;
         this.taskExecutor = Objects.requireNonNull(taskExecutor);
         this.journalAbbreviationRepository = Objects.requireNonNull(journalAbbreviationRepository);
+        this.luceneManager = luceneManager;
         this.searchQueryProperty = searchQueryProperty;
     }
 
@@ -261,6 +265,7 @@ abstract class FieldsEditorTab extends EntryEditorTab implements OffersPreview {
                     preferences,
                     themeManager,
                     taskExecutor,
+                    luceneManager,
                     searchQueryProperty);
             EasyBind.subscribe(preferences.getPreviewPreferences().showPreviewAsExtraTabProperty(), show -> {
                 if (show) {

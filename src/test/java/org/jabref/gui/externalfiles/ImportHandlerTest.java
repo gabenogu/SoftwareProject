@@ -73,7 +73,8 @@ class ImportHandlerTest {
                 mock(UndoManager.class),
                 mock(StateManager.class),
                 mock(DialogService.class),
-                new CurrentThreadTaskExecutor());
+                new CurrentThreadTaskExecutor()
+                );
 
         testEntry = new BibEntry(StandardEntryType.Article)
                 .withCitationKey("Test2023")
@@ -141,7 +142,8 @@ class ImportHandlerTest {
                 mock(UndoManager.class),
                 mock(StateManager.class),
                 mock(DialogService.class),
-                new CurrentThreadTaskExecutor()));
+                new CurrentThreadTaskExecutor()
+        ));
         // Mock the behavior of getDuplicateDecision to return KEEP_RIGHT
         Mockito.doReturn(decisionResult).when(importHandler).getDuplicateDecision(testEntry, duplicateEntry, DuplicateResolverDialog.DuplicateResolverResult.BREAK);
 
@@ -172,7 +174,8 @@ class ImportHandlerTest {
                 mock(UndoManager.class),
                 mock(StateManager.class),
                 mock(DialogService.class),
-                new CurrentThreadTaskExecutor()));
+                new CurrentThreadTaskExecutor()
+        ));
         // Mock the behavior of getDuplicateDecision to return KEEP_BOTH
         Mockito.doReturn(decisionResult).when(importHandler).getDuplicateDecision(testEntry, duplicateEntry, DuplicateResolverDialog.DuplicateResolverResult.BREAK);
 
@@ -206,7 +209,8 @@ class ImportHandlerTest {
                 mock(UndoManager.class),
                 mock(StateManager.class),
                 mock(DialogService.class),
-                new CurrentThreadTaskExecutor()));
+                new CurrentThreadTaskExecutor()
+        ));
         // Mock the behavior of getDuplicateDecision to return KEEP_MERGE
         Mockito.doReturn(decisionResult).when(importHandler).getDuplicateDecision(testEntry, duplicateEntry, DuplicateResolverDialog.DuplicateResolverResult.BREAK);
 

@@ -26,7 +26,7 @@ class ShortDOIServiceTest {
     void getShortDOI() throws ShortDOIServiceException {
         DOI shortDoi = sut.getShortDOI(doi);
 
-        assertEquals("10/gf4gqc", shortDoi.asString());
+        assertEquals("10/gf4gqc", shortDoi.getDOI());
     }
 
     @Test

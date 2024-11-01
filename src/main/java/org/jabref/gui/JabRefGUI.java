@@ -24,7 +24,6 @@ import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.gui.remote.CLIMessageHandler;
 import org.jabref.gui.theme.ThemeManager;
 import org.jabref.gui.undo.CountingUndoManager;
-import org.jabref.gui.util.DefaultDirectoryMonitor;
 import org.jabref.gui.util.UiTaskExecutor;
 import org.jabref.logic.UiCommand;
 import org.jabref.logic.ai.AiService;
@@ -32,7 +31,6 @@ import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.net.ProxyRegisterer;
 import org.jabref.logic.remote.RemotePreferences;
 import org.jabref.logic.remote.server.RemoteListenerServerManager;
-import org.jabref.logic.search.PostgreServer;
 import org.jabref.logic.util.BuildInfo;
 import org.jabref.logic.util.FallbackExceptionHandler;
 import org.jabref.logic.util.HeadlessExecutorService;
@@ -135,9 +133,6 @@ public class JabRefGUI extends Application {
 
     public void initialize() {
         WebViewStore.init();
-
-        DirectoryMonitor directoryMonitor = new DefaultDirectoryMonitor();
-        Injector.setModelOrService(DirectoryMonitor.class, directoryMonitor);
 
         JabRefGUI.remoteListenerServerManager = new RemoteListenerServerManager();
         Injector.setModelOrService(RemoteListenerServerManager.class, remoteListenerServerManager);
@@ -396,9 +391,6 @@ public class JabRefGUI extends Application {
         LOGGER.trace("Shutting down directoryMonitor");
         DirectoryMonitor directoryMonitor = Injector.instantiateModelOrService(DirectoryMonitor.class);
         directoryMonitor.shutdown();
-        LOGGER.trace("Shutting down postgreServer");
-        PostgreServer postgreServer = Injector.instantiateModelOrService(PostgreServer.class);
-        postgreServer.shutdown();
         LOGGER.trace("Shutting down HeadlessExecutorService");
         HeadlessExecutorService.INSTANCE.shutdownEverything();
         LOGGER.trace("Finished shutdownThreadPools");

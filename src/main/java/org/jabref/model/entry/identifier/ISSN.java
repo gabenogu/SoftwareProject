@@ -55,7 +55,7 @@ public class ISSN implements Identifier {
     }
 
     @Override
-    public String asString() {
+    public String getNormalized() {
         return issnString;
     }
 

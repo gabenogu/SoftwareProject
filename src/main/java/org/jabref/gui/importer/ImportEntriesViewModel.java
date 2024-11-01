@@ -149,6 +149,11 @@ public class ImportEntriesViewModel extends AbstractViewModel {
                 parserResult.getMetaData(),
                 parserResult.getPath().map(path -> path.getFileName().toString()).orElse("unknown"),
                 parserResult.getDatabase().getEntries());
+
+        buildImportHandlerThenImportEntries(entriesToImport);
+    }
+
+    private void buildImportHandlerThenImportEntries(List<BibEntry> entriesToImport) {
         ImportHandler importHandler = new ImportHandler(
                 selectedDb.getValue(),
                 preferences,

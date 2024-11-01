@@ -13,6 +13,7 @@ import org.jabref.logic.preferences.CliPreferences;
 import org.jabref.logic.util.StandardFileType;
 import org.jabref.logic.xmp.XmpPreferences;
 import org.jabref.model.database.BibDatabaseMode;
+import org.jabref.model.entry.BibEntryTypesManager;
 import org.jabref.model.metadata.SelfContainedSaveOrder;
 
 public class ExporterFactory {
@@ -23,7 +24,9 @@ public class ExporterFactory {
         this.exporters = Objects.requireNonNull(exporters);
     }
 
-    public static ExporterFactory create(CliPreferences preferences) {
+    public static ExporterFactory create(CliPreferences preferences,
+                                         BibEntryTypesManager entryTypesManager) {
+
         List<TemplateExporter> customFormats = preferences.getExportPreferences().getCustomExporters();
         LayoutFormatterPreferences layoutPreferences = preferences.getLayoutFormatterPreferences();
         SelfContainedSaveOrder saveOrder = SelfContainedSaveOrder.of(preferences.getSelfContainedExportConfiguration().getSaveOrder());
@@ -58,7 +61,7 @@ public class ExporterFactory {
         exporters.add(new ModsExporter());
         exporters.add(new XmpExporter(xmpPreferences));
         exporters.add(new XmpPdfExporter(xmpPreferences));
-        exporters.add(new EmbeddedBibFilePdfExporter(bibDatabaseMode, preferences.getCustomEntryTypesRepository(), fieldPreferences));
+        exporters.add(new EmbeddedBibFilePdfExporter(bibDatabaseMode, entryTypesManager, fieldPreferences));
         exporters.add(new CffExporter());
         exporters.add(new EndnoteXmlExporter(preferences.getBibEntryPreferences()));
 

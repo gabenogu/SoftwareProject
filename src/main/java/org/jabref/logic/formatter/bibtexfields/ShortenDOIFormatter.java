@@ -34,7 +34,7 @@ public class ShortenDOIFormatter extends Formatter {
         return SHORT_DOI_FORMAT.test(value) ? value : DOI.parse(value)
                   .map(doi -> {
                       try {
-                          return new ShortDOIService().getShortDOI(doi).asString();
+                          return new ShortDOIService().getShortDOI(doi).getDOI();
                       } catch (ShortDOIServiceException e) {
                           LOGGER.error(e.getMessage(), e);
                           return value;

@@ -79,7 +79,9 @@ public class ExportCommand extends SimpleCommand {
     @Override
     public void execute() {
         // Get list of exporters and sort before adding to file dialog
-        ExporterFactory exporterFactory = ExporterFactory.create(preferences);
+        ExporterFactory exporterFactory = ExporterFactory.create(
+                preferences,
+                entryTypesManager);
         List<Exporter> exporters = exporterFactory.getExporters().stream()
                                                   .sorted(Comparator.comparing(Exporter::getName))
                                                   .collect(Collectors.toList());

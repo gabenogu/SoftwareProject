@@ -25,39 +25,29 @@ public class LinkedFileHandler {
     private final FilePreferences filePreferences;
     private final BibEntry entry;
 
-    private final LinkedFile linkedFile;
+    private final LinkedFile fileEntry;
 
-    public LinkedFileHandler(LinkedFile linkedFile,
+    public LinkedFileHandler(LinkedFile fileEntry,
                              BibEntry entry,
                              BibDatabaseContext databaseContext,
                              FilePreferences filePreferences) {
-        this.linkedFile = linkedFile;
+        this.fileEntry = fileEntry;
         this.entry = entry;
         this.databaseContext = Objects.requireNonNull(databaseContext);
         this.filePreferences = Objects.requireNonNull(filePreferences);
     }
 
     public boolean moveToDefaultDirectory() throws IOException {
-        return copyOrMoveToDefaultDirectory(true, false);
-    }
-
-    /**
-     * @return true if the file was copied/moved or the same file exists in the target directory
-     */
-    public boolean copyOrMoveToDefaultDirectory(boolean shouldMove, boolean shouldRenameToFilenamePattern) throws IOException {
-        Optional<Path> databaseFileDirectoryOpt = databaseContext.getFirstExistingFileDir(filePreferences);
-        if (databaseFileDirectoryOpt.isEmpty()) {
-            LOGGER.warn("No existing file directory found");
+        Optional<Path> targetDirectory = databaseContext.getFirstExistingFileDir(filePreferences);
+        if (targetDirectory.isEmpty()) {
             return false;
         }
-        Path databaseFileDirectory = databaseFileDirectoryOpt.get();
 
-        Optional<Path> sourcePathOpt = linkedFile.findIn(databaseContext, filePreferences);
-        if (sourcePathOpt.isEmpty()) {
-            LOGGER.warn("Could not find file {}", linkedFile.getLink());
+        Optional<Path> oldFile = fileEntry.findIn(databaseContext, filePreferences);
+        if (oldFile.isEmpty()) {
+            // Could not find file
             return false;
         }
-        Path sourcePath = sourcePathOpt.get();
 
         String targetDirectoryName = "";
         if (!filePreferences.getFileDirectoryPattern().isEmpty()) {
@@ -67,87 +57,22 @@ public class LinkedFileHandler {
                     filePreferences.getFileDirectoryPattern());
         }
 
-        Path targetDirectory = databaseFileDirectory.resolve(targetDirectoryName);
-        // Ensure that this directory exists
-        Files.createDirectories(targetDirectory);
-
-        GetTargetPathResult getTargetPathResult = null;
-        if (shouldRenameToFilenamePattern) {
-            getTargetPathResult = getTargetPath(sourcePath, targetDirectory, true);
-            if (getTargetPathResult.exists) {
-                if (shouldMove && !Files.isSameFile(sourcePath, getTargetPathResult.path)) {
-                    Files.delete(sourcePath);
-                }
-                linkedFile.setLink(FileUtil.relativize(getTargetPathResult.path(), databaseContext, filePreferences).toString());
-                return true;
-            }
-        }
-        if (!shouldRenameToFilenamePattern || (getTargetPathResult.renamed && !entry.getFiles().isEmpty())) {
-            // Either we do not rename to pattern - or UX feature:
-            // UX feature: If user adds a file to the entry and JabRef could only add it when renaming to the suggested pattern,
-            //             JabRef should keep the original file name
-            getTargetPathResult = getTargetPath(sourcePath, targetDirectory, false);
-            if (getTargetPathResult.exists) {
-                if (shouldMove && !Files.isSameFile(sourcePath, getTargetPathResult.path)) {
-                    Files.delete(sourcePath);
-                }
-                linkedFile.setLink(FileUtil.relativize(getTargetPathResult.path(), databaseContext, filePreferences).toString());
-                return true;
-            }
-        }
-
-        assert !Files.exists(getTargetPathResult.path);
-        if (shouldMove) {
-            Files.move(sourcePath, getTargetPathResult.path);
-        } else {
-            Files.copy(sourcePath, getTargetPathResult.path);
-        }
-        assert Files.exists(getTargetPathResult.path);
-
-        linkedFile.setLink(FileUtil.relativize(getTargetPathResult.path, databaseContext, filePreferences).toString());
-        return true;
-    }
-
-    /**
-     * If exists: the path already exists and has the same content as the given sourcePath
-     *
-     * @param renamed The original/suggested filename was adapted to fit it
-     */
-    private record GetTargetPathResult(boolean exists, boolean renamed, Path path) {
-    }
-
-    private GetTargetPathResult getTargetPath(Path sourcePath, Path targetDirectory, boolean useSuggestedName) throws IOException {
-        Path suggestedFileName;
-        if (useSuggestedName) {
-            suggestedFileName = Path.of(getSuggestedFileName(FileUtil.getFileExtension(sourcePath).orElse("")));
-        } else {
-            suggestedFileName = sourcePath.getFileName();
-        }
-
-        Path targetPath = targetDirectory.resolve(suggestedFileName);
-        boolean renamed = false;
+        Path targetPath = targetDirectory.get().resolve(targetDirectoryName).resolve(oldFile.get().getFileName());
         if (Files.exists(targetPath)) {
-            if (Files.mismatch(sourcePath, targetPath) == -1) {
-                // In case of source == target, we pretend, we have success
-                LOGGER.debug("The file {} would have been copied/moved to {}. However, there exists already a file with that name so we do nothing.", sourcePath, targetPath);
-                return new GetTargetPathResult(true, false, targetPath);
-            }
-            Integer count = 1;
-            boolean exists = false;
-            do {
-                targetPath = targetDirectory.resolve(sourcePath.getFileName() + " (" + count + ")");
-                exists = Files.exists(targetPath);
-                if (exists && Files.mismatch(sourcePath, targetPath) == -1) {
-                    // In case of source == target, we pretend, we have success
-                    LOGGER.debug("The file {} would have been copied/moved to {}. However, there exists already a file with that name so we do nothing.", sourcePath, targetPath);
-                    return new GetTargetPathResult(true, true, targetPath);
-                }
-                count++;
-            } while (exists);
-            LOGGER.debug("The file {} existed in the target path somehow (but with different content). Chose new name {}.", sourcePath, targetPath);
-            renamed = true;
+            // We do not overwrite already existing files
+            LOGGER.debug("The file {} would have been moved to {}. However, there exists already a file with that name so we do nothing.", oldFile.get(), targetPath);
+            return false;
+        } else {
+            // Make sure sub-directories exist
+            Files.createDirectories(targetPath.getParent());
         }
-        return new GetTargetPathResult(false, renamed, targetPath);
+
+        // Move
+        Files.move(oldFile.get(), targetPath);
+
+        // Update path
+        fileEntry.setLink(FileUtil.relativize(targetPath, databaseContext, filePreferences).toString());
+        return true;
     }
 
     public boolean renameToSuggestedName() throws IOException {
@@ -155,22 +80,13 @@ public class LinkedFileHandler {
     }
 
     public boolean renameToName(String targetFileName, boolean overwriteExistingFile) throws IOException {
-        Optional<Path> oldFile = linkedFile.findIn(databaseContext, filePreferences);
+        Optional<Path> oldFile = fileEntry.findIn(databaseContext, filePreferences);
         if (oldFile.isEmpty()) {
             return false;
         }
 
         final Path oldPath = oldFile.get();
-        Optional<String> oldExtension = FileUtil.getFileExtension(oldPath);
-        Optional<String> newExtension = FileUtil.getFileExtension(targetFileName);
-
-        Path newPath;
-        if (newExtension.isPresent() || (oldExtension.isEmpty() && newExtension.isEmpty())) {
-            newPath = oldPath.resolveSibling(targetFileName);
-        } else {
-            assert oldExtension.isPresent() && newExtension.isEmpty();
-            newPath = oldPath.resolveSibling(targetFileName + "." + oldExtension.get());
-        }
+        final Path newPath = oldPath.resolveSibling(targetFileName);
 
         String expandedOldFilePath = oldPath.toString();
         boolean pathsDifferOnlyByCase = newPath.toString().equalsIgnoreCase(expandedOldFilePath)
@@ -193,27 +109,24 @@ public class LinkedFileHandler {
         }
 
         // Update path
-        linkedFile.setLink(FileUtil.relativize(newPath, databaseContext, filePreferences).toString());
+        fileEntry.setLink(FileUtil.relativize(newPath, databaseContext, filePreferences).toString());
 
         return true;
     }
 
     public String getSuggestedFileName() {
-        String oldFileName = linkedFile.getLink();
+        String oldFileName = fileEntry.getLink();
 
-        String extension = FileUtil.getFileExtension(oldFileName).orElse(linkedFile.getFileType());
+        String extension = FileUtil.getFileExtension(oldFileName).orElse(fileEntry.getFileType());
         return getSuggestedFileName(extension);
     }
 
-    /**
-     * @param extension The extension of the file. If empty, no extension is added.
-     * @return A filename based on the pattern specified in the preferences and valid for the file system.
-     */
     public String getSuggestedFileName(String extension) {
-        String targetFileName = FileUtil.createFileNameFromPattern(databaseContext.getDatabase(), entry, filePreferences.getFileNamePattern()).trim();
-        if (!extension.isEmpty()) {
-            targetFileName = targetFileName + '.' + extension;
-        }
+        String targetFileName = FileUtil.createFileNameFromPattern(databaseContext.getDatabase(), entry, filePreferences.getFileNamePattern()).trim()
+                + '.'
+                + extension;
+
+        // Only create valid file names
         return FileUtil.getValidFileName(targetFileName);
     }
 

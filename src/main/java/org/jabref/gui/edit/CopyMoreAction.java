@@ -115,7 +115,7 @@ public class CopyMoreAction extends SimpleCommand {
         } else {
             copyDoiList(entries.stream()
                                .filter(entry -> entry.getDOI().isPresent())
-                               .map(entry -> entry.getDOI().get().asString())
+                               .map(entry -> entry.getDOI().get().getDOI())
                                .collect(Collectors.toList()), entries.size());
         }
     }
